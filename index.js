@@ -4,6 +4,7 @@ import qrcode from "qrcode-terminal";
 import { initMessage } from "./init.js";
 import profession from "./profession.js";
 import responseByAI from "./utils/gemini.js";
+import fs from "fs";
 
 const client = new Client({
   puppeteer: { args: ["--no-sandbox", "--disable-setuid-sandbox"] },
@@ -13,13 +14,14 @@ const client = new Client({
 // ⭐ MULTI-USER STORAGE ⭐
 const userSessions = {};
 const SESSION_TIME = 5 * 60 * 1000; // 5 minutes
+// save qr in image file
+client.on("qr", (qr) => {
+  qrcode.generate(qr, { small: true });
+  fs.writeFileSync("qr.png", qr);
+});
 
 client.once("ready", () => {
   console.log("Client is ready!");
-});
-
-client.on("qr", (qr) => {
-  qrcode.generate(qr, { small: true });
 });
 
 client.on("message", async (message) => {
