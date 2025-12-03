@@ -4,6 +4,10 @@ import generateQR from "./qrgenrator.js";
 import { initMessage } from "./init.js";
 import profession from "./profession.js";
 import responseByAI from "./utils/gemini.js";
+import gTTS from "gtts";
+import fs from "fs";
+import pkg from "whatsapp-web.js";
+const { MessageMedia } = pkg;
 
 const client = new Client({
   puppeteer: { args: ["--no-sandbox", "--disable-setuid-sandbox"] },
@@ -38,14 +42,14 @@ client.on("message", async (message) => {
   await message.getChat().then((chat) => {
     userName = chat.name;
   });
-
+  console.log(`Message from ${userName} (${userId}): ${message.body}`);
   // ⭐ Initialize Session If Not Exists
   if (!userSessions[userId]) {
     userSessions[userId] = {
       userName: userName || "User",
       profession: null,
-      girlfriendMode: false,
-      girlfriendName: null,
+      Mode: null,
+      partnerName: null,
       waitingForProfession: false,
       waitingForName: false,
       timer: null,
@@ -61,14 +65,22 @@ client.on("message", async (message) => {
     session.waitingForProfession = false;
 
     message.reply(`⏳ Your session expired.  
-Please choose your profession again using **/profession**`);
+Please choose your profession again using **/profession** *\n/gf\n/bf* `);
   }, SESSION_TIME);
+
+  // 🧑‍💼 Profession Menu
+  if (message.body === "/p" || message.body === "/profession") {
+    session.waitingForProfession = true;
+    session.Mode = "PROFESSION";
+    profession(message, null); // show list
+    return;
+  }
 
   //  💞 Toggle Girlfriend Mode
   if (message.body === "/gf") {
-    session.girlfriendMode = !session.girlfriendMode;
+    session.Mode = "GF";
 
-    if (session.girlfriendMode) {
+    if (session.Mode === "GF") {
       session.waitingForName = true;
       return message.reply(
         `💖 Girlfriend mode enabled!\n\nEnter a name for your AI GF:`
@@ -77,20 +89,34 @@ Please choose your profession again using **/profession**`);
 
     return message.reply("❌ Girlfriend mode disabled");
   }
+  //  💞 Toggle boyfriend Mode
+  if (message.body === "/bf") {
+    session.Mode = "BF";
+
+    if (session.Mode === "BF") {
+      session.waitingForName = true;
+      return message.reply(
+        `💖 Boyfriend mode enabled!\n\nEnter a name for your AI BF:`
+      );
+    }
+
+    return message.reply("❌ Boyfriend mode disabled");
+  }
+  //  🕉️ Toggle Bhakti Mode
+  if (message.body === "/bhakti") {
+    session.Mode = "BHAKTI";
+
+    if (session.Mode === "BHAKTI") {
+      return message.reply(`🕉️ Bhakti mode enabled!:`);
+    }
+  }
 
   // 💞 Save Girlfriend Name
   if (session.waitingForName) {
-    session.girlfriendName = message.body.trim();
+    session.partnerName = message.body.trim();
     session.waitingForName = false;
 
-    return message.reply(`💖 Name saved: *${session.girlfriendName}*`);
-  }
-
-  // 🧑‍💼 Profession Menu
-  if (message.body === "/p" || message.body === "/profession") {
-    session.waitingForProfession = true;
-    profession(message, null); // show list
-    return;
+    return message.reply(`💖 Name saved: *${session.partnerName}*`);
   }
 
   // Save Profession
@@ -106,22 +132,55 @@ Please choose your profession again using **/profession**`);
   }
 
   // ⛔ No Profession & Not in Girlfriend Mode
-  if (!session.profession && !session.girlfriendMode) {
+  if (!session.profession && session.Mode === null) {
     return message.reply(
       `⚠ Please set your profession using:\n👉 */profession*`
     );
   }
-
   // 🔥 AI Reply (Main Logic)
   const reply = await responseByAI(
     message.body ?? "", // default value
     session.userName ?? "User", // default
     session.profession ?? "none", // default
-    session.girlfriendMode ?? false,
-    session.girlfriendName ?? ""
+    session.Mode ?? null,
+    session.partnerName ?? ""
   );
 
+  // if (session.Mode === "GF") {
+  //   // Make sure tmp folder exists
+  //   if (!fs.existsSync("./tmp")) {
+  //     fs.mkdirSync("./tmp");
+  //   }
+
+  //   const audioFilePath = `./tmp/${userId}_gf.mp3`;
+  //   const gtts = new gTTS(reply, "hi");
+
+  //   // Convert gtts.save into a Promise
+  //   await new Promise((resolve, reject) => {
+  //     gtts.save(audioFilePath, (err) => {
+  //       if (err) {
+  //         console.error("Error generating voice message:", err);
+  //         return reject(err);
+  //       }
+  //       console.log("Voice message saved:", audioFilePath);
+  //       resolve();
+  //     });
+  //   });
+
+  //   // Send voice message
+  //   const media = new MessageMedia(
+  //     "audio/mpeg",
+  //     fs.readFileSync(audioFilePath).toString("base64"),
+  //     `${session.partnerName}_gf.mp3`
+  //   );
+
+  //   await message.reply(media);
+  //   // Optionally, delete the temporary audio file after sending
+  //   fs.unlinkSync(audioFilePath);
+  // } else {
+  // }
   message.reply(reply);
+  console.log(`me: ${reply}`);
 });
 
 // Start Bot

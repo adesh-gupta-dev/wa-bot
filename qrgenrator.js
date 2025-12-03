@@ -1,21 +1,10 @@
 import QRCode from "qrcode";
 
 const generateQR = async (qr) => {
-  let colordark = [
-    "#013fe8ff",
-    "#f120ceff",
-    "#e89b01ff",
-    "#a76b81ff",
-    "#62b730ff",
-  ];
-  colordark.forEach((color) => {
-    color = color;
-  });
-
   try {
-    await QRCode.toFile("./frontend/whatsapp_ai/public/qrnew.png", qr, {
+    await QRCode.toFile("./public/qrnew.png", qr, {
       color: {
-        dark: `${colordark.map(() => color)}`,
+        dark: "#000000",
         light: "#ddefe6ff",
       },
     });

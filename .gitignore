@@ -14,9 +14,8 @@
 .env.local
 .env.development.local
 
-
-/.wwebjs_cache
 /.wwebjs_auth
+/.wwebjs_cache
 
 
 .env.test.local
