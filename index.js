@@ -7,6 +7,7 @@ import responseByAI from "./utils/gemini.js";
 import gTTS from "gtts";
 import fs from "fs";
 import pkg from "whatsapp-web.js";
+import { generateVoice } from "./voiceGenration.js";
 const { MessageMedia } = pkg;
 
 const client = new Client({
@@ -65,7 +66,7 @@ client.on("message", async (message) => {
     session.waitingForProfession = false;
 
     message.reply(`⏳ Your session expired.  
-Please choose your profession again using **/profession** *\n/gf\n/bf* `);
+Please choose your profession again using **/profession** *\n/bhakti* `);
   }, SESSION_TIME);
 
   // 🧑‍💼 Profession Menu
@@ -78,7 +79,7 @@ Please choose your profession again using **/profession** *\n/gf\n/bf* `);
 
   //  💞 Toggle Girlfriend Mode
   if (message.body === "/gf") {
-    session.Mode = "GF";
+    session.Mode = session.Mode === "GF" ? null : "GF";
 
     if (session.Mode === "GF") {
       session.waitingForName = true;
@@ -91,7 +92,7 @@ Please choose your profession again using **/profession** *\n/gf\n/bf* `);
   }
   //  💞 Toggle boyfriend Mode
   if (message.body === "/bf") {
-    session.Mode = "BF";
+    session.Mode = session.Mode === "BF" ? null : "BF";
 
     if (session.Mode === "BF") {
       session.waitingForName = true;
@@ -104,11 +105,12 @@ Please choose your profession again using **/profession** *\n/gf\n/bf* `);
   }
   //  🕉️ Toggle Bhakti Mode
   if (message.body === "/bhakti") {
-    session.Mode = "BHAKTI";
+    session.Mode = session.Mode === "BHAKTI" ? null : "BHAKTI";
 
     if (session.Mode === "BHAKTI") {
       return message.reply(`🕉️ Bhakti mode enabled!:`);
     }
+    return message.reply("❌ Bhakti mode disabled");
   }
 
   // 💞 Save Girlfriend Name
@@ -134,7 +136,7 @@ Please choose your profession again using **/profession** *\n/gf\n/bf* `);
   // ⛔ No Profession & Not in Girlfriend Mode
   if (!session.profession && session.Mode === null) {
     return message.reply(
-      `⚠ Please set your profession using:\n👉 */profession*`
+      `⚠ Please set your profession using:\n👉 */profession*\n*/bhakti*`
     );
   }
   // 🔥 AI Reply (Main Logic)
@@ -146,40 +148,31 @@ Please choose your profession again using **/profession** *\n/gf\n/bf* `);
     session.partnerName ?? ""
   );
 
-  // if (session.Mode === "GF") {
-  //   // Make sure tmp folder exists
-  //   if (!fs.existsSync("./tmp")) {
-  //     fs.mkdirSync("./tmp");
-  //   }
+  //voice generation usinge ElevenLabs
+  if (session.Mode === "GF") {
+    // Make sure tmp folder exists
+    if (!fs.existsSync("./tmp")) {
+      fs.mkdirSync("./tmp");
+    }
+    const audioFilePath = await generateVoice(
+      reply,
+      process.env.ELEVEN_LABS_GIRL_VOICE_ID // Example voice ID
+    );
+    if (audioFilePath) {
+      // Send voice message
+      const media = new MessageMedia(
+        "audio/mpeg",
+        fs.readFileSync(audioFilePath).toString("base64"),
+        `${session.partnerName}_gf.mp3`
+      );
 
-  //   const audioFilePath = `./tmp/${userId}_gf.mp3`;
-  //   const gtts = new gTTS(reply, "hi");
+      await message.reply(media);
+      // Optionally, delete the temporary audio file after sending
+      fs.unlinkSync(audioFilePath);
+    }
+  }
 
-  //   // Convert gtts.save into a Promise
-  //   await new Promise((resolve, reject) => {
-  //     gtts.save(audioFilePath, (err) => {
-  //       if (err) {
-  //         console.error("Error generating voice message:", err);
-  //         return reject(err);
-  //       }
-  //       console.log("Voice message saved:", audioFilePath);
-  //       resolve();
-  //     });
-  //   });
-
-  //   // Send voice message
-  //   const media = new MessageMedia(
-  //     "audio/mpeg",
-  //     fs.readFileSync(audioFilePath).toString("base64"),
-  //     `${session.partnerName}_gf.mp3`
-  //   );
-
-  //   await message.reply(media);
-  //   // Optionally, delete the temporary audio file after sending
-  //   fs.unlinkSync(audioFilePath);
-  // } else {
-  // }
-  message.reply(reply);
+  // message.reply(reply);
   console.log(`me: ${reply}`);
 });
 
