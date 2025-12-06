@@ -7,6 +7,8 @@ import responseByAI from "./utils/gemini.js";
 import gTTS from "gtts";
 import fs from "fs";
 import pkg from "whatsapp-web.js";
+import { generateVoice } from "./voiceGenration.js";
+
 const { MessageMedia } = pkg;
 
 const client = new Client({
@@ -78,7 +80,7 @@ Please choose your profession again using **/profession** *\n/gf\n/bf* `);
 
   //  💞 Toggle Girlfriend Mode
   if (message.body === "/gf") {
-    session.Mode = "GF";
+    session.Mode = session.Mode === "GF" ? null : "GF";
 
     if (session.Mode === "GF") {
       session.waitingForName = true;
@@ -91,7 +93,7 @@ Please choose your profession again using **/profession** *\n/gf\n/bf* `);
   }
   //  💞 Toggle boyfriend Mode
   if (message.body === "/bf") {
-    session.Mode = "BF";
+    session.Mode = session.Mode === "BF" ? null : "BF";
 
     if (session.Mode === "BF") {
       session.waitingForName = true;
@@ -104,11 +106,12 @@ Please choose your profession again using **/profession** *\n/gf\n/bf* `);
   }
   //  🕉️ Toggle Bhakti Mode
   if (message.body === "/bhakti") {
-    session.Mode = "BHAKTI";
+    session.Mode = session.Mode === "BHAKTI" ? null : "BHAKTI";
 
     if (session.Mode === "BHAKTI") {
       return message.reply(`🕉️ Bhakti mode enabled!:`);
     }
+    return message.reply("❌ Bhakti mode disabled");
   }
 
   // 💞 Save Girlfriend Name
@@ -145,6 +148,27 @@ Please choose your profession again using **/profession** *\n/gf\n/bf* `);
     session.Mode ?? null,
     session.partnerName ?? ""
   );
+  console.log(`AI Reply: ${reply}`);
+
+  // 🎤 Voice Generation for Girlfriend Mode
+  if (session.Mode === "GF") {
+    generateVoice(reply, "SZfY4K69FwXus87eayHK").then(async (audioFilePath) => {
+      if (!audioFilePath) {
+        return message.reply("❌ Voice generation failed.");
+      }
+
+      const media = new MessageMedia(
+        "audio/mpeg",
+        fs.readFileSync(audioFilePath).toString("base64"),
+        `${session.partnerName}_gf.mp3`
+      );
+
+      await message.reply(media);
+
+      // delete file
+      fs.unlinkSync(audioFilePath);
+    });
+  }
 
   // if (session.Mode === "GF") {
   //   // Make sure tmp folder exists
@@ -179,7 +203,10 @@ Please choose your profession again using **/profession** *\n/gf\n/bf* `);
   //   fs.unlinkSync(audioFilePath);
   // } else {
   // }
-  message.reply(reply);
+
+  if (session.Mode !== "GF") {
+    message.reply(reply);
+  }
   console.log(`me: ${reply}`);
 });
 

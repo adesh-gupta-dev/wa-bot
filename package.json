@@ -12,8 +12,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.26.0",
     "@google/genai": "^1.30.0",
     "dotenv": "^17.2.3",
+    "elevenlabs": "^1.59.0",
+    "elevenlabs-js": "^1.2.6",
     "gtts": "^0.2.1",
     "nodemon": "^3.1.11",
     "qrcode": "^1.5.4",
