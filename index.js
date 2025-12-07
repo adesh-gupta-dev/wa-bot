@@ -9,6 +9,7 @@ import fs from "fs";
 import qrcode from "qrcode-terminal";
 import pkg from "whatsapp-web.js";
 import { generateVoice } from "./voiceGenration.js";
+import { startServer } from "./qrimage.js";
 const { MessageMedia } = pkg;
 
 const client = new Client({
@@ -24,6 +25,7 @@ let stop = false;
 client.on("qr", (qr) => {
   qrcode.generate(qr, { small: true });
   generateQR(qr);
+  startServer();
 
   console.log("QR RECEIVED");
 });
